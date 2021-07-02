@@ -80,6 +80,12 @@ void Error_Handler(void);
 #define LCD_RW_GPIO_Port GPIOA
 #define LCD_EN_Pin GPIO_PIN_10
 #define LCD_EN_GPIO_Port GPIOA
+#define Fc_Inf_Pin GPIO_PIN_11
+#define Fc_Inf_GPIO_Port GPIOA
+#define Fc_Sup_Pin GPIO_PIN_12
+#define Fc_Sup_GPIO_Port GPIOA
+#define Sens_Rejillas_Pin GPIO_PIN_15
+#define Sens_Rejillas_GPIO_Port GPIOA
 #define PULSADOR1_Pin GPIO_PIN_5
 #define PULSADOR1_GPIO_Port GPIOB
 #define PULSADOR2_Pin GPIO_PIN_7

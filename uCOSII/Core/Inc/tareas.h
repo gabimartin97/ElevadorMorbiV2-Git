@@ -49,6 +49,9 @@ typedef enum
  **************************************************************/
 
 OS_EVENT *mBox_Pulsadores;			//Mbox que envía la tarea pulsadores a Tarea Principal
+OS_EVENT *sem_Rejillas;
+OS_EVENT *mBox_Fc_Sup;
+OS_EVENT *mBox_Fc_Inf;
 OS_EVENT *sem_Pulsos;
 OS_ERR ISR_os_err;
 
@@ -62,6 +65,9 @@ struct programState
 	bool errorTimeoutInf;
 	bool giroHorario;
 	bool giroAntiHorario;
+	bool elevadorCargado;
+	bool fc_Superior;
+	bool fc_Inferior;
 	uint8_t digit0;
 	uint8_t digit1;
 	uint8_t digit2;
@@ -98,6 +104,7 @@ void IncrementarMenu();
 bool ChequearContrasena();
 void GiroHorario();
 void GiroAntiHorario();
+void ResumirTareaDisplay (Pulsadores teclaPulsada);
 /***************************************************************
  *							Prototipo funciones / Tareas
  **************************************************************/

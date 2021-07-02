@@ -294,6 +294,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : Fc_Inf_Pin Fc_Sup_Pin Sens_Rejillas_Pin */
+  GPIO_InitStruct.Pin = Fc_Inf_Pin|Fc_Sup_Pin|Sens_Rejillas_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pins : PULSADOR1_Pin PULSADOR2_Pin PULSADOR3_Pin PULSADOR4_Pin */
   GPIO_InitStruct.Pin = PULSADOR1_Pin|PULSADOR2_Pin|PULSADOR3_Pin|PULSADOR4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;

@@ -142,17 +142,20 @@ void TareaPrincipal (void *p_arg)
 	ValoresDeArranque(); //inicializa los valores del programa
 
 
-	int *data;	//Esta variable recibe mensajes
+	int *dataPulsadores;	//Esta variable recibe mensajes
+	int dataRejillas;
+	int *dataFc_Sup;
+	int *dataFc_Inf;
 
 	/*//////////////////////////LOOP DE LA TAREA//////////////////////////////////////*/
 	while(DEF_TRUE)
 	{
 		/*Recepción del mensaje de la tarea pulsadores */
-		data=OSMboxAccept(mBox_Pulsadores);
+		dataPulsadores=OSMboxAccept(mBox_Pulsadores);
 		/*Recepción del mensaje de la tarea pulsadores */
-		if (data != (void *)0) //Si hay contenido en el mensaje quiere decir que se pulsó una tecla
+		if (dataPulsadores != (void *)0) //Si hay contenido en el mensaje quiere decir que se pulsó una tecla
 		{
-			Pulsadores teclaPulsada = *data;
+			Pulsadores teclaPulsada = *dataPulsadores;
 			if(teclaPulsada == P_Menu && !estadoActual.start )IncrementarMenu();
 
 			switch(estadoActual.menuPantalla)
@@ -162,7 +165,7 @@ void TareaPrincipal (void *p_arg)
 				if(teclaPulsada == P_Start)
 				{
 					estadoActual.start = !estadoActual.start;
-
+					//Iniciar modo automátcio
 				}
 
 				break;
@@ -178,7 +181,6 @@ void TareaPrincipal (void *p_arg)
 						{
 							estadoActual.giroHorario = true;
 							estadoActual.giroAntiHorario = false;
-
 						}
 					}
 					else
@@ -188,7 +190,6 @@ void TareaPrincipal (void *p_arg)
 							{
 								estadoActual.giroHorario = false;
 								estadoActual.giroAntiHorario = true;
-
 							}
 						}
 						else
@@ -197,8 +198,6 @@ void TareaPrincipal (void *p_arg)
 								estadoActual.giroHorario = false;
 								estadoActual.giroAntiHorario = false;
 							}
-
-
 				break;
 
 			case Password1:
@@ -212,8 +211,6 @@ void TareaPrincipal (void *p_arg)
 					estadoActual.digit0--;
 					if(estadoActual.digit0 >= 10 || estadoActual.digit0 < 0 ) estadoActual.digit0 = 9;
 				}
-
-
 				break;
 
 			case Password2:
@@ -230,8 +227,6 @@ void TareaPrincipal (void *p_arg)
 							estadoActual.digit1--;
 							if(estadoActual.digit1 >= 10 || estadoActual.digit1 < 0 ) estadoActual.digit1 = 9;
 						}
-
-
 				break;
 
 			case Password3:
@@ -248,7 +243,6 @@ void TareaPrincipal (void *p_arg)
 							estadoActual.digit2--;
 							if(estadoActual.digit2 >= 10 || estadoActual.digit2 < 0 ) estadoActual.digit2 = 9;
 						}
-
 				break;
 
 			case Password4:
@@ -314,25 +308,43 @@ void TareaPrincipal (void *p_arg)
 							estadoActual.nRejillas =65.535;
 						}
 					}
-
-
 				break;
-
 			case count:
 			default:
 				break;
+			} // END SWITCH estadoActual.menuPantalla
 
+			ResumirTareaDisplay(teclaPulsada);
+		} // END if teclaPulsada
 
-
-
-			}
-
-			if(teclaPulsada != P_None && !((estadoActual.menuPantalla == ModoMan )&& (teclaPulsada != P_Start)))
+		/*Recepción del mensaje de la tarea rejillas */
+		dataRejillas = OSSemAccept(sem_Rejillas);
+		if (dataRejillas > 0)
+		{
+			estadoActual.rejillasActuales ++;
+			if (estadoActual.rejillasActuales >= estadoActual.nRejillas)
 			{
-				OSTaskResume(APP_CFG_TASK7_PRIO);
+				//Elevador cargado
+				estadoActual.rejillasActuales = 0;
 			}
-
+			ResumirTareaDisplay(P_Menu);
 		}
+		/*Recepción del mensaje de la tarea pulsadores */
+		dataFc_Sup=OSMboxAccept(mBox_Fc_Sup);
+		dataFc_Inf=OSMboxAccept(mBox_Fc_Inf);
+		if (dataFc_Sup != (void *)0)
+		{
+			estadoActual.fc_Superior = *dataFc_Sup;
+		}
+		if (dataFc_Inf != (void *)0)
+		{
+			estadoActual.fc_Inferior = *dataFc_Inf;
+		}
+		/*Recepción del mensaje de la tarea pulsadores */
+
+
+
+
 
 
 
@@ -365,15 +377,47 @@ void TareaPrincipal (void *p_arg)
 void LecturaFC (void *p_arg)
 
 {
-
-
+	mBox_Fc_Sup = OSMboxCreate((void *)0);
+	mBox_Fc_Inf = OSMboxCreate((void *)0);
+	int Fc_Sup_Activo = false; // Para leer solo flanco ascendente
+	int Fc_Inf_Activo = false; // Para leer solo flanco ascendente
+	OSTimeDlyHMSM(0u, 0u, 1u, 500u);
 
 	while(DEF_TRUE)
 	{
+		if((!Fc_Sup_Activo) && HAL_GPIO_ReadPin(GPIOA, Fc_Sup_Pin))
+		{
+			Fc_Sup_Activo = true;
+			OSMboxPost(mBox_Fc_Sup, &Fc_Sup_Activo); //Le envio un mensaje a la mainTask con el estado del FC
+			OSTimeDlyHMSM(0u, 0u, 1u, 500u);
+		}
+		else
+		{
+			if (Fc_Sup_Activo && (! HAL_GPIO_ReadPin(GPIOA, Fc_Sup_Pin)))
+			{
+				Fc_Sup_Activo = false; //Flanco descendente
+				OSMboxPost(mBox_Fc_Sup, &Fc_Sup_Activo); //Le envio un mensaje a la mainTask con el estado del FC
+				OSTimeDlyHMSM(0u, 0u, 1u, 500u);
+			}
+		}
+		if(!Fc_Inf_Activo && HAL_GPIO_ReadPin(GPIOA, Fc_Inf_Pin))
+		{
+			Fc_Inf_Activo = true;
+			OSMboxPost(mBox_Fc_Inf, &Fc_Inf_Activo); //Le envio un mensaje a la mainTask con el estado del FC
+			OSTimeDlyHMSM(0u, 0u, 1u, 500u);
+		}
+		else
+		{
+			if (Fc_Inf_Activo && ! HAL_GPIO_ReadPin(GPIOA, Fc_Inf_Pin))
+			{
+				Fc_Inf_Activo = false; //Flanco descendente
+				OSMboxPost(mBox_Fc_Inf, &Fc_Inf_Activo); //Le envio un mensaje a la mainTask con el estado del FC
+				OSTimeDlyHMSM(0u, 0u, 1u, 500u);
+			}
+		}
 
 
-		OSTimeDlyHMSM(0, 0, 1u, 0u); // Leo pulsadores 10 veces por segundo
-
+		OSTimeDlyHMSM(0, 0, 0u, 100u); // Leo los finales de carrera 100 veces por segundo
 
 	}
 }
@@ -398,14 +442,25 @@ void LecturaFC (void *p_arg)
 void LecturaRejillas (void *p_arg)
 
 {
-
+	sem_Rejillas = OSSemCreate(0);
+	bool mismaPieza = false; // Para leer solo flanco ascendente
 
 	while(DEF_TRUE)
 	{
+		if(!mismaPieza && HAL_GPIO_ReadPin(GPIOA, Sens_Rejillas_Pin))
+		{
+			mismaPieza = true;
+			OSSemPost(sem_Rejillas); //Le aviso a la tarea principal que llegó una rejillas
+		}
+		else
+		{
+			if (mismaPieza && ! HAL_GPIO_ReadPin(GPIOA, Sens_Rejillas_Pin))
+			{
+				mismaPieza = false; //Flanco descendente
+			}
+		}
 
-
-		OSTimeDlyHMSM(0, 0, 1u, 0u); // Leo pulsadores 10 veces por segundo
-
+		OSTimeDlyHMSM(0, 0, 0u, 200u); // Escaneo el sensor de rejillas 5 veces por segundo
 
 	}
 }
@@ -606,6 +661,7 @@ void ValoresDeArranque()
 	estadoActual.errorTimeoutInf = false;
 	estadoActual.giroHorario = false;
 	estadoActual.giroAntiHorario = false;
+	estadoActual.elevadorCargado = false;
 	estadoActual.digit0 = 0;
 	estadoActual.digit1 = 0;
 	estadoActual.digit2 = 0;
@@ -615,7 +671,7 @@ void ValoresDeArranque()
 	estadoActual.rejillasActuales=0;
 	estadoActual.nRejillas=5;
 	estadoActual.distancia_mm = 3000;
-	estadoActual.div_Frecuencia = 2;
+	estadoActual.div_Frecuencia = 1;
 	estadoActual.menuPantalla = ModoAut;
 
 }
@@ -678,4 +734,14 @@ void GiroAntiHorario()
 	HAL_GPIO_WritePin(GPIOB, DIR_Pin, GPIO_PIN_SET); 		//GIRO PA OTRO LADO
 	OSTimeDlyHMSM(0, 0, 0, 1u);
 	//HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+}
+
+void ResumirTareaDisplay (Pulsadores teclaPulsada)
+{
+	if((teclaPulsada != P_None) &&
+			!((estadoActual.menuPantalla == ModoMan )&&(teclaPulsada == P_Up || teclaPulsada == P_Down ))
+	)
+	{
+		OSTaskResume(APP_CFG_TASK7_PRIO);
+	}
 }
