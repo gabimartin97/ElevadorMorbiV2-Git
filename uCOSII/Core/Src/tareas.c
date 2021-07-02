@@ -101,14 +101,25 @@ void LecturaPulsadores (void *p_arg)
 
 /*
  *********************************************************************************************************
- *                                        TAREA 2:  Menu()
+ *                                        TAREA 2:  ModoAutomatico()
  *
- * Description : Esta tarea contiene la máquina de estados del menú del programa
+ * Description :
+ * * PRIMER MEDIO CICLO: CICLO DE SUBIDA
+ * Arranca si el sistema se encuentra en start y el final de carrera inferior está activo
+ * 1/4 del recorrido lo realiza a baja velocidad. 2/4 a alta velocidad y el ultimo tramo
+ * a baja velocidad nuevamente. Superada la distancia calculada sigue avanzando a baja
+ * velocidad con el objetivo de encontrar el final de carrera. si no lo encuentra lanza
+ * un error
+ *
+ * SEGUNDO MEDIO CICLO: CICLO DE BAJADA
+ *  Arranca si el sistema se encuentra en start y el final de carrera superior está activo
+ * 1/4 del recorrido lo realiza a baja velocidad. 2/4 a alta velocidad y el ultimo tramo
+ * a baja velocidad nuevamente. Superada la distancia calculada sigue avanzando a baja
+ * velocidad con el objetivo de encontrar el final de carrera. si no lo encuentra lanza
+ * un error
  *
  *
- *
- *
- * Argument(s) : p_arg       Argument passed to ' Menu()' by 'OSTaskCreate()'.
+ * Argument(s) : p_arg       Argument passed to ' ModoAutomatico()' by 'OSTaskCreate()'.
  *
  * Return(s)   : none.
  *
@@ -117,6 +128,61 @@ void LecturaPulsadores (void *p_arg)
  * Note(s)     : none.
  *********************************************************************************************************
  */
+void CicloAutomatico (void *p_arg)
+{
+	/****************** CALCULOS ********************
+	 *Según la distancia que se desea recorrer, se necesitan x cantidad de pulsos enviados
+	 *Se envia 2 khz para velocidad max y 1 khz para velocidad min
+	 *
+	 **/
+	 float delay_ms = ((estadoActual.distancia_mm / DESPLAZAMIENTO_X_REV ) * PUSLOS_X_REV ) / 2000; // Calculo delay
+	 float tiempo2khz = delay_ms / 2 ;
+	 float tiempo1khz = (delay_ms / 4) * 2;
+
+	 INT8U tiempo2khz_s = (INT8U)(tiempo2khz/1000);
+	 INT8U tiempo1khz_s = (INT8U)(tiempo1khz/1000);
+	 tiempo1khz = tiempo1khz - (tiempo1khz_s * 1000);
+	 tiempo2khz = tiempo2khz - (tiempo2khz * 1000);
+
+	/****************** CALCULOS ********************/
+	OS_ERR os_err;
+	OSTimeDlyHMSM(0, 0, 1u, 0u); // Escaneo el sensor de rejillas 5 veces por segundo
+
+	/****************** LOOP DE LA TAREA ********************/
+	while(DEF_TRUE)
+	{
+		OSSemPend(sem_ModAutomatico, 0, &os_err); //Espera a que la main task de la orden de arranque
+
+
+			/********************** CICLO DE SUBIDA ***********************************/
+
+		//FALTA HACER ESTO BIEN
+			estadoActual.div_Frecuencia = 3;
+			estadoActual.giroHorario = true;
+			estadoActual.giroAntiHorario = false;
+
+			OSTimeDlyHMSM(0, 0, tiempo1khz_s, (INT16U)tiempo1khz);		//Recorre 1/4 tramo a baja velocidad
+			estadoActual.div_Frecuencia = 1;
+			OSTimeDlyHMSM(0, 0, tiempo2khz_s, (INT16U)tiempo2khz);		//Recorre 2/4 tramo a alta velocidad
+			estadoActual.div_Frecuencia = 3;
+			OSTimeDlyHMSM(0, 0, tiempo1khz_s, (INT16U)tiempo1khz);		//Recorre 1/4 tramo a baja velocidad
+			OSTimeDlyHMSM(0, 0, 3u, timeout_Fc_Sup);				//Timeout FC superior
+
+			estadoActual.giroHorario = false;
+			estadoActual.giroAntiHorario = false;
+
+
+			/********************** CICLO DE SUBIDA ***********************************/
+
+			//OSTimeDlyHMSM(0, 0, 0u, 200u);
+
+
+
+	}
+	/****************** LOOP DE LA TAREA ********************/
+}
+
+
 
 /*
  *********************************************************************************************************
@@ -139,13 +205,15 @@ void LecturaPulsadores (void *p_arg)
 void TareaPrincipal (void *p_arg)
 
 {
-	ValoresDeArranque(); //inicializa los valores del programa
+	sem_Rejillas = OSSemCreate(0);
+	sem_ModAutomatico = OSSemCreate(0);
 
 
 	int *dataPulsadores;	//Esta variable recibe mensajes
 	int dataRejillas;
 	int *dataFc_Sup;
 	int *dataFc_Inf;
+	ValoresDeArranque(); //inicializa los valores del programa
 
 	/*//////////////////////////LOOP DE LA TAREA//////////////////////////////////////*/
 	while(DEF_TRUE)
@@ -325,6 +393,7 @@ void TareaPrincipal (void *p_arg)
 			if (estadoActual.rejillasActuales >= estadoActual.nRejillas)
 			{
 				//Elevador cargado
+				estadoActual.rejillas_Ready = true;
 				estadoActual.rejillasActuales = 0;
 			}
 			ResumirTareaDisplay(P_Menu);
@@ -342,6 +411,23 @@ void TareaPrincipal (void *p_arg)
 		}
 		/*Recepción del mensaje de la tarea pulsadores */
 
+
+
+		/*Ejercución de la rutina automática */
+		if(estadoActual.start &&
+				(estadoActual.menuPantalla == ModoAut) &&
+				estadoActual.rejillas_Ready)
+		{
+			estadoActual.rejillas_Ready = false;
+			OSSemPost(sem_ModAutomatico); //post flag rutina automática
+
+		}
+		/*Ejercución de la rutina automática */
+
+
+		/* ACCION DE LOS FINALES DE CARRERA Y EL PULSADOR DE EMERGENCIA */
+
+		/* ACCION DE LOS FINALES DE CARRERA Y EL PULSADOR DE EMERGENCIA */
 
 
 
@@ -379,9 +465,9 @@ void LecturaFC (void *p_arg)
 {
 	mBox_Fc_Sup = OSMboxCreate((void *)0);
 	mBox_Fc_Inf = OSMboxCreate((void *)0);
-	int Fc_Sup_Activo = false; // Para leer solo flanco ascendente
-	int Fc_Inf_Activo = false; // Para leer solo flanco ascendente
-	OSTimeDlyHMSM(0u, 0u, 1u, 500u);
+	int Fc_Sup_Activo = false; // Para leer solo flanco ascendente. Parece que los semáforos solo pueden ser int
+	int Fc_Inf_Activo = false; // Para leer solo flanco ascendente. Parece que los semáforos solo pueden ser int
+	OSTimeDlyHMSM(0u, 0u, 1u, 0u);
 
 	while(DEF_TRUE)
 	{
@@ -444,7 +530,7 @@ void LecturaRejillas (void *p_arg)
 {
 	sem_Rejillas = OSSemCreate(0);
 	bool mismaPieza = false; // Para leer solo flanco ascendente
-
+	OSTimeDlyHMSM(0u, 0u, 1u, 0u);
 	while(DEF_TRUE)
 	{
 		if(!mismaPieza && HAL_GPIO_ReadPin(GPIOA, Sens_Rejillas_Pin))
@@ -553,8 +639,6 @@ void ActualizarDisplay (void *p_arg)
 
 	LiquidCrystal(GPIOA, LCD_RS_Pin, LCD_RW_Pin, LCD_EN_Pin, LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin);
 	OSTimeDlyHMSM(0u, 0u, 1u, 0u);
-
-
 	while(DEF_TRUE)
 	{
 
@@ -662,6 +746,7 @@ void ValoresDeArranque()
 	estadoActual.giroHorario = false;
 	estadoActual.giroAntiHorario = false;
 	estadoActual.elevadorCargado = false;
+	estadoActual.rejillas_Ready = false;
 	estadoActual.digit0 = 0;
 	estadoActual.digit1 = 0;
 	estadoActual.digit2 = 0;

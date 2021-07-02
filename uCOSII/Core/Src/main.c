@@ -58,7 +58,7 @@ static void StartupTask (void *p_arg);
 static OS_STK StartupTaskStk[APP_CFG_STARTUP_TASK_STK_SIZE];
 
 static OS_STK Task1Stk[APP_CFG_TASK1_STK_SIZE];
-//static OS_STK Task2Stk[APP_CFG_TASK2_STK_SIZE];
+static OS_STK Task2Stk[APP_CFG_TASK2_STK_SIZE];
 static OS_STK Task3Stk[APP_CFG_TASK3_STK_SIZE];
 static OS_STK Task4Stk[APP_CFG_TASK4_STK_SIZE];
 static OS_STK Task5Stk[APP_CFG_TASK5_STK_SIZE];
@@ -77,7 +77,7 @@ static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 static void App_Task1Create (void);
-//static void App_Task2Create (void);
+static void App_Task2Create (void);
 static void App_Task3Create (void);
 static void App_Task4Create (void);
 static void App_Task5Create (void);
@@ -390,7 +390,7 @@ static void StartupTask (void *p_arg)
 #endif
 
 	App_Task1Create();											  //Creación de la tarea 1
-//	App_Task2Create();											  //Creación de la tarea 2
+	App_Task2Create();											  //Creación de la tarea 2
 	App_Task3Create();											  //Creación de la tarea 3
 	App_Task4Create();											  //Creación de la tarea 4
 	App_Task5Create();											  //Creación de la tarea 5
@@ -451,12 +451,12 @@ static void App_Task1Create (void)
 * Note(s)     : none.
 *********************************************************************************************************
 */
-/*
+
 static void App_Task2Create (void)
 {
 	CPU_INT08U os_err;
 
-	os_err = OSTaskCreateExt((void (*)(void *)) Menu,
+	os_err = OSTaskCreateExt((void (*)(void *)) CicloAutomatico,
 							 (void			* )0,
 							 (OS_STK		* )&Task2Stk[APP_CFG_TASK2_STK_SIZE - 1],
 							 (INT8U			  ) APP_CFG_TASK2_PRIO,
@@ -466,9 +466,9 @@ static void App_Task2Create (void)
 							 (void			* )0,
 							 (INT16U		  )(OS_TASK_OPT_STK_CLR | OS_TASK_OPT_STK_CHK));
 
-	OSTaskNameSet(APP_CFG_TASK2_PRIO, (unsigned char *)"Menu ", &os_err);
+	OSTaskNameSet(APP_CFG_TASK2_PRIO, (unsigned char *)"Ciclo Automatico", &os_err);
 }
-*/
+
 /*
 *********************************************************************************************************
 *                                 static void App_Task3Create (void)

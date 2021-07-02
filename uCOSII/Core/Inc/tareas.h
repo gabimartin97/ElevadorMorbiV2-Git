@@ -22,6 +22,22 @@
 #include "stdbool.h"
 #include "LiquidCrystal.h"
 
+/***************************************************************
+ *					PARÁMETROS DE CALIBRACIÓN
+ **************************************************************/
+#define DESPLAZAMIENTO_X_REV 0.1	//cuantos mm se desplaza linealmente por cada vuelta del mot
+#define PUSLOS_X_REV  		 400			//seteado en el driver
+
+#define timeout_Fc_Sup 		4000		//Tiempo en el que busca el final de carrera superior
+#define timeout_Fc_Inf 		4000		//Tiempo en el que busca el final de carrera inferior
+#define tiempoDescarga 		2000		//Tiempo de reposo de la descarga superior
+/***************************************************************
+ *					PARÁMETROS DE CALIBRACIÓN
+ **************************************************************/
+
+/***************************************************************
+ *					ENUMERATIONS
+ **************************************************************/
 typedef enum
 {
 	ModoAut,
@@ -45,6 +61,9 @@ typedef enum
 }Pulsadores;				//Los 4 pulsadores posibles
 
 /***************************************************************
+ *					ENUMERATIONS
+ **************************************************************/
+/***************************************************************
  *					VARIABLES GLOBALES
  **************************************************************/
 
@@ -53,6 +72,7 @@ OS_EVENT *sem_Rejillas;
 OS_EVENT *mBox_Fc_Sup;
 OS_EVENT *mBox_Fc_Inf;
 OS_EVENT *sem_Pulsos;
+OS_EVENT *sem_ModAutomatico;		//Sem que envia la maintask a la tarea modo automatico
 OS_ERR ISR_os_err;
 
 static const uint8_t contrasena[4] = {1,2,3,4};
@@ -68,6 +88,7 @@ struct programState
 	bool elevadorCargado;
 	bool fc_Superior;
 	bool fc_Inferior;
+	bool rejillas_Ready;
 	uint8_t digit0;
 	uint8_t digit1;
 	uint8_t digit2;
@@ -90,13 +111,13 @@ struct programState estadoActual;// Estructura que contiene el estado actual del
 /***************************************************************
  *							Prototipo funciones / Tareas
  **************************************************************/
-void LecturaPulsadores (void *p_arg);					//Tarea 1
-void Menu 				(void *p_arg);					//Tarea 2
-void TareaPrincipal	(void *p_arg);					//Tarea 3
+void LecturaPulsadores  (void *p_arg);					//Tarea 1
+void CicloAutomatico 	(void *p_arg);					//Tarea 2
+void TareaPrincipal		(void *p_arg);					//Tarea 3
 void LecturaFC			(void *p_arg);					//Tarea 4
 void LecturaRejillas	(void *p_arg);					//Tarea 5
 void ControlMotor		(void *p_arg);					//Tarea 6
-void ActualizarDisplay (void *p_arg);					//Tarea 7
+void ActualizarDisplay  (void *p_arg);					//Tarea 7
 
 void ValoresDeArranque();
 void ResetPassword();

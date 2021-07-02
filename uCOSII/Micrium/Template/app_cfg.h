@@ -60,7 +60,7 @@
 #define  APP_CFG_STARTUP_TASK_PRIO          3u
 
 #define  APP_CFG_TASK1_PRIO                 10u		//Lectura Pulsadores
-//#define  APP_CFG_TASK2_PRIO                 11u		//Navegación Menu
+#define  APP_CFG_TASK2_PRIO                 9u		//ModoAutomático
 #define  APP_CFG_TASK3_PRIO                 5u		//Tarea Principal
 #define  APP_CFG_TASK4_PRIO                 7u		//Lecura FC
 #define  APP_CFG_TASK5_PRIO                 8u		//Lectura Rejillas
@@ -80,7 +80,7 @@
 #define  APP_CFG_STARTUP_TASK_STK_SIZE    128u
 
 #define  APP_CFG_TASK1_STK_SIZE    		  128u //Lectura de pulsadores
-//#define  APP_CFG_TASK2_STK_SIZE    		  128u //Menu
+#define  APP_CFG_TASK2_STK_SIZE    		  128u //Modo automática
 #define  APP_CFG_TASK3_STK_SIZE    		  256u //Tarea Principal
 #define  APP_CFG_TASK4_STK_SIZE    		  128u //Lectura FC
 #define  APP_CFG_TASK5_STK_SIZE    		  128u //Lectura Rejillas
